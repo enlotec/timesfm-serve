@@ -1,45 +1,15 @@
-"""API router defining endpoints for TimesFM Serve."""
+"""API router defining forecasting endpoints for TimesFM Serve."""
 
 from fastapi import APIRouter, HTTPException, Request
 
-try:
-    import torch
-    TORCH_VERSION = torch.__version__
-except ImportError:
-    torch = None  # type: ignore
-    TORCH_VERSION = "unavailable"
-
-from timesfm_serve import __version__
-from timesfm_serve.schemas import (
-    FinancialForecastRequest,
-    FinancialForecastResponse,
+from timesfm_serve.modules.forecasting.schemas import (
     ForecastRequest,
     ForecastResponse,
-    HealthResponse,
     MultivariateForecastRequest,
     MultivariateForecastResponse,
-    QuantileBands,
-    TargetForecastResult,
 )
 
 router = APIRouter()
-
-
-@router.get("/health", response_model=HealthResponse, tags=["Diagnostics"])
-async def get_health(request: Request) -> HealthResponse:
-    """Check readiness, active model checkpoint, and device acceleration."""
-    engine = getattr(request.app.state, "engine", None)
-    settings = getattr(request.app.state, "settings", None)
-
-    return HealthResponse(
-        status="healthy" if engine is not None else "starting",
-        model_id=settings.timesfm_model_id if settings else "unknown",
-        device=engine.device if engine else "unknown",
-        torch_version=TORCH_VERSION,
-        multivariate_enabled=engine.is_v3 if engine else False,
-        version=__version__,
-    )
-
 
 @router.post("/v1/forecast", response_model=ForecastResponse, tags=["Forecasting"])
 async def forecast_univariate(
@@ -102,33 +72,3 @@ async def forecast_multivariate(
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Multivariate error: {exc}") from exc
-
-
-@router.post(
-    "/v1/forecast/financial",
-    response_model=FinancialForecastResponse,
-    tags=["Financial Forecasting"],
-)
-async def forecast_financial(
-    payload: FinancialForecastRequest,
-    request: Request,
-) -> FinancialForecastResponse:
-    """Domain-specialized endpoint for historical OHLCV bars.
-
-    Returns forward price trajectories, expected basis-point return, uncertainty bands,
-    downside Value at Risk (VaR), and directional bias ('bullish', 'bearish', 'neutral').
-    """
-    engine = getattr(request.app.state, "engine", None)
-    if engine is None:
-        raise HTTPException(status_code=503, detail="Model engine not initialized")
-
-    try:
-        return engine.forecast_financial(
-            symbol=payload.symbol,
-            bars=payload.bars,
-            horizon_bars=payload.horizon_bars,
-            current_price=payload.current_price,
-            market_sentiment_score=payload.market_sentiment_score,
-        )
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Financial forecast error: {exc}") from exc

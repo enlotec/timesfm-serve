@@ -8,9 +8,11 @@ import structlog
 import uvicorn
 
 from timesfm_serve import __version__
-from timesfm_serve.api import router
-from timesfm_serve.config import get_settings
-from timesfm_serve.lifespan import lifespan
+from timesfm_serve.modules.forecasting.router import router as forecasting_router
+from timesfm_serve.modules.diagnostics.router import router as diagnostics_router
+from timesfm_serve.modules.mcp.server import mcp
+from timesfm_serve.core.config import get_settings
+from timesfm_serve.core.lifespan import lifespan
 
 logger = structlog.get_logger(__name__)
 
@@ -22,14 +24,10 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="TimesFM Serve",
         description=(
-            "### Production-grade REST API and Docker container for Google's TimesFM\n\n"
+            "### Production-grade REST API, MCP Server, and Docker container for Google's TimesFM\n\n"
             "Developed by **enlotec** under the **Apache License, Version 2.0**.\n\n"
-            "**LEGAL & FINANCIAL DISCLAIMER:**\n"
-            "The forecasts, trajectories, return estimates, and directional indicators provided "
-            "by this service are for computational research and informational purposes only. "
-            "Nothing herein constitutes financial, investment, trading, legal, or tax advice. "
-            "Under no circumstances shall enlotec or its contributors be liable for any financial "
-            "losses, lost profits, or trading damages arising from the use of this service."
+            "This service provides a pure wrapper around the Google TimesFM foundation model, "
+            "exposing Univariate, Multivariate, and Covariate forecasting capabilities over REST and Model Context Protocol (MCP)."
         ),
         version=__version__,
         license_info={
@@ -52,7 +50,12 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    app.include_router(router)
+    app.include_router(diagnostics_router)
+    app.include_router(forecasting_router)
+    
+    # Mount the FastMCP Starlette app
+    app.mount("/mcp", mcp.get_starlette_app())
+    
     return app
 
 

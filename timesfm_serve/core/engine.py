@@ -15,16 +15,13 @@ except ImportError:
     torch = None  # type: ignore
     HAS_TORCH = False
 
-from timesfm_serve.config import Settings
-from timesfm_serve.schemas import (
-    FinancialBar,
-    FinancialForecastResponse,
+from timesfm_serve.core.config import Settings
+from timesfm_serve.modules.forecasting.schemas import (
     FutureCovariate,
     NamedSeries,
     QuantileBands,
     SeriesForecast,
     TargetForecastResult,
-    TrajectoryBands,
 )
 
 logger = structlog.get_logger(__name__)
@@ -240,73 +237,17 @@ class TimesFmEngine:
             for i in range(len(targets))
         ]
 
-    def forecast_financial(
-        self,
-        symbol: str,
-        bars: list[FinancialBar],
-        horizon_bars: int,
-        current_price: float | None = None,
-        market_sentiment_score: float | None = None,
-    ) -> FinancialForecastResponse:
-        """Domain-specific financial OHLCV forecasting with risk metrics."""
-        closes = [bar.close for bar in bars]
-        ref_price = current_price if current_price is not None else closes[-1]
 
-        # Use close price series for forecasting
-        forecast_res = self.forecast_univariate([closes], horizon=horizon_bars)
-        primary = forecast_res[0]
 
-        p10_path = primary.quantiles.q10
-        p50_path = primary.quantiles.q50
-        p90_path = primary.quantiles.q90
+_global_engine: TimesFmEngine | None = None
 
-        predicted_p50 = p50_path[-1]
-        predicted_p10 = p10_path[-1]
-        predicted_p90 = p90_path[-1]
+def set_global_engine(engine: TimesFmEngine) -> None:
+    global _global_engine
+    _global_engine = engine
 
-        expected_return_bps = ((predicted_p50 - ref_price) / ref_price) * 10000.0
-        downside_var_p10_bps = ((predicted_p10 - ref_price) / ref_price) * 10000.0
-        uncertainty_spread_bps = ((predicted_p90 - predicted_p10) / ref_price) * 10000.0
+def get_global_engine() -> TimesFmEngine:
+    global _global_engine
+    if _global_engine is None:
+        raise RuntimeError('TimesFM Engine not initialized globally.')
+    return _global_engine
 
-        # Determine directional signal and confidence
-        if expected_return_bps >= 20.0 and downside_var_p10_bps >= -100.0:
-            signal = "bullish"
-            confidence = min(
-                0.95,
-                max(0.55, 0.5 + (expected_return_bps / max(1.0, uncertainty_spread_bps)) * 0.2),
-            )
-        elif expected_return_bps <= -20.0:
-            signal = "bearish"
-            confidence = min(
-                0.95,
-                max(0.55, 0.5 + (abs(expected_return_bps) / max(1.0, uncertainty_spread_bps)) * 0.2),
-            )
-        else:
-            signal = "neutral"
-            confidence = 0.50
-
-        # Sentiment adjustment if supplied
-        if market_sentiment_score is not None:
-            if signal == "bullish" and market_sentiment_score < 30.0:
-                # Extreme fear contrarian boost
-                confidence = min(0.99, confidence + 0.05)
-            elif signal == "bullish" and market_sentiment_score > 75.0:
-                # Extreme greed caution dampening
-                confidence = max(0.40, confidence - 0.10)
-
-        return FinancialForecastResponse(
-            symbol=symbol.upper(),
-            horizon_bars=horizon_bars,
-            current_price=round(ref_price, 4),
-            predicted_price_p50=round(predicted_p50, 4),
-            expected_return_bps=round(expected_return_bps, 2),
-            signal=signal,
-            confidence=round(confidence, 3),
-            uncertainty_spread_bps=round(uncertainty_spread_bps, 2),
-            downside_var_p10_bps=round(downside_var_p10_bps, 2),
-            trajectory=TrajectoryBands(
-                p10=p10_path,
-                p50=p50_path,
-                p90=p90_path,
-            ),
-        )

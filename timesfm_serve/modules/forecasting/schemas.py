@@ -1,4 +1,4 @@
-"""Pydantic schemas for TimesFM Serve REST API."""
+"""Pydantic schemas for TimesFM Serve Forecasting API."""
 
 from __future__ import annotations
 
@@ -99,82 +99,3 @@ class MultivariateForecastResponse(BaseModel):
     model_id: str
     horizon: int
     targets: list[TargetForecastResult]
-
-
-# ------------------------------------------------------------------------------
-# 3. Specialized Financial Time-Series Models
-# ------------------------------------------------------------------------------
-
-class FinancialBar(BaseModel):
-    timestamp: str | None = None
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: float | None = None
-
-
-class FinancialForecastRequest(BaseModel):
-    symbol: str = Field(..., description="Asset ticker symbol, e.g. 'AAPL' or 'SPY'.")
-    bars: list[FinancialBar] = Field(
-        ...,
-        min_length=10,
-        description="Ordered historical candlestick bars.",
-    )
-    horizon_bars: int = Field(
-        default=12,
-        ge=1,
-        le=128,
-        description="Number of future bars to forecast.",
-    )
-    current_price: float | None = Field(
-        default=None,
-        description="Current quote mid/last price. Defaults to last bar close.",
-    )
-    market_sentiment_score: float | None = Field(
-        default=None,
-        ge=0,
-        le=100,
-        description="Optional Fear & Greed sentiment index (0..100).",
-    )
-
-
-class TrajectoryBands(BaseModel):
-    p10: list[float] = Field(..., description="10th percentile simulated price path.")
-    p50: list[float] = Field(..., description="Median (50th percentile) expected price path.")
-    p90: list[float] = Field(..., description="90th percentile simulated price path.")
-
-
-class FinancialForecastResponse(BaseModel):
-    symbol: str
-    horizon_bars: int
-    current_price: float
-    predicted_price_p50: float = Field(..., description="Expected price at end of horizon.")
-    expected_return_bps: float = Field(
-        ...,
-        description="Expected basis point return ((predicted_price - current_price) / current_price * 10000).",
-    )
-    signal: str = Field(..., description="'bullish', 'bearish', or 'neutral'.")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="Statistical signal confidence.")
-    uncertainty_spread_bps: float = Field(
-        ...,
-        description="Width of 80% credible interval in basis points ((p90 - p10) / current_price * 10000).",
-    )
-    downside_var_p10_bps: float = Field(
-        ...,
-        description="10th percentile tail return in bps (Value at Risk proxy).",
-    )
-    trajectory: TrajectoryBands
-
-
-# ------------------------------------------------------------------------------
-# 4. System & Health Models
-# ------------------------------------------------------------------------------
-
-class HealthResponse(BaseModel):
-    status: str
-    model_id: str
-    device: str
-    torch_version: str
-    multivariate_enabled: bool
-    version: str

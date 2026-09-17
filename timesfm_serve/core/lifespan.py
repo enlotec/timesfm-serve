@@ -7,8 +7,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 import structlog
 
-from timesfm_serve.config import get_settings
-from timesfm_serve.engine import TimesFmEngine
+from timesfm_serve.core.config import get_settings
+from timesfm_serve.core.engine import TimesFmEngine
 
 logger = structlog.get_logger(__name__)
 
@@ -19,6 +19,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("Initializing TimesFM engine during startup...")
     engine = TimesFmEngine(settings)
     engine.load_model()
+    
+    from timesfm_serve.core.engine import set_global_engine
+    set_global_engine(engine)
+    
     app.state.engine = engine
     app.state.settings = settings
     logger.info("TimesFM engine ready to serve requests.")
