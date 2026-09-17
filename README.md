@@ -99,12 +99,10 @@ docker compose -f docker-compose.yaml -f docker-compose.gpu.yaml up -d
 git clone https://github.com/your-username/timesfm-serve.git
 cd timesfm-serve
 
-# Create virtual environment
-python -m venv .venv
+# Create virtual environment and install dependencies using uv
+uv venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install dependencies
-pip install -e .
+uv pip install -e .
 
 # Run the server
 uvicorn timesfm_serve.main:app --host 0.0.0.0 --port 8088 --reload
