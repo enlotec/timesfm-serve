@@ -2,25 +2,23 @@
 
 from __future__ import annotations
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 import structlog
 import uvicorn
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from timesfm_serve import __version__
-from timesfm_serve.modules.forecasting.router import router as forecasting_router
-from timesfm_serve.modules.diagnostics.router import router as diagnostics_router
-from timesfm_serve.modules.mcp.server import mcp
 from timesfm_serve.core.config import get_settings
 from timesfm_serve.core.lifespan import lifespan
+from timesfm_serve.modules.diagnostics.router import router as diagnostics_router
+from timesfm_serve.modules.forecasting.router import router as forecasting_router
+from timesfm_serve.modules.mcp.server import mcp
 
 logger = structlog.get_logger(__name__)
 
 
 def create_app() -> FastAPI:
     """Build and configure the FastAPI application."""
-    settings = get_settings()
-
     app = FastAPI(
         title="TimesFM Serve",
         description=(
@@ -53,8 +51,8 @@ def create_app() -> FastAPI:
     app.include_router(diagnostics_router)
     app.include_router(forecasting_router)
     
-    # Mount the FastMCP Starlette app
-    app.mount("/mcp", mcp.get_starlette_app())
+    # Mount the MCP Starlette SSE app
+    app.mount("/mcp", mcp.sse_app())
     
     return app
 
@@ -64,6 +62,12 @@ app = create_app()
 
 def cli() -> None:
     """CLI entrypoint for running the server directly."""
+    import sys
+    if "--mcp-stdio" in sys.argv:
+        from timesfm_serve.modules.mcp.server import run_stdio
+        run_stdio()
+        return
+
     settings = get_settings()
     uvicorn.run(
         "timesfm_serve.main:app",

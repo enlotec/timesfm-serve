@@ -30,7 +30,11 @@ async def forecast_univariate(
         )
 
     try:
-        forecasts = engine.forecast_univariate(payload.series, horizon=horizon)
+        forecasts = engine.forecast_univariate(
+            payload.series,
+            horizon=horizon,
+            frequency=payload.frequency,
+        )
         return ForecastResponse(
             model_id=settings.timesfm_model_id,
             horizon=horizon,
@@ -63,6 +67,7 @@ async def forecast_multivariate(
             past_covariates=payload.past_covariates,
             future_covariates=payload.future_covariates,
             horizon=horizon,
+            frequency=payload.frequency,
         )
 
         return MultivariateForecastResponse(

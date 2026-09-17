@@ -5,7 +5,7 @@
 **Production-grade, lightweight REST API and Docker serving container for Google's TimesFM (Time Series Foundation Model).**
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11-brightgreen.svg)](https://www.python.org/)
+[![Python Version](https://img.shields.io/badge/python-3.11%20%7C%203.14-brightgreen.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com/)
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-orange)](https://huggingface.co/google/timesfm-3.0-pytorch)
@@ -55,7 +55,7 @@ However, Google does not provide an official, ready-to-run public Docker contain
 docker run -d \
   --name timesfm-serve \
   -p 8088:8088 \
-  -v timesfm_cache:/root/.cache/huggingface \
+  -v timesfm_cache:/home/appuser/.cache/huggingface \
   -e TIMESFM_MODEL_ID=google/timesfm-3.0-pytorch \
   ghcr.io/enlotec/timesfm-serve:latest
 ```
@@ -66,7 +66,7 @@ docker run -d \
   --name timesfm-serve \
   --gpus all \
   -p 8088:8088 \
-  -v timesfm_cache:/root/.cache/huggingface \
+  -v timesfm_cache:/home/appuser/.cache/huggingface \
   -e TIMESFM_MODEL_ID=google/timesfm-3.0-pytorch \
   -e DEVICE=cuda \
   ghcr.io/enlotec/timesfm-serve:latest-gpu

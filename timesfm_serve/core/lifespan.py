@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+
 import structlog
+from fastapi import FastAPI
 
 from timesfm_serve.core.config import get_settings
 from timesfm_serve.core.engine import TimesFmEngine

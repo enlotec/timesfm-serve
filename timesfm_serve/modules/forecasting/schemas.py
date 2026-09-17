@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
 from pydantic import BaseModel, Field
-
 
 # ------------------------------------------------------------------------------
 # 1. Univariate Forecast Models
@@ -65,6 +63,10 @@ class NamedSeries(BaseModel):
 class FutureCovariate(BaseModel):
     name: str = Field(..., description="Covariate channel name.")
     future_values: list[float] = Field(..., description="Known future values matching forecast horizon.")
+    history: list[float] | None = Field(
+        default=None,
+        description="Optional historical observed values for the context period. If omitted, matching past_covariates channel or zeros will be used.",
+    )
 
 
 class MultivariateForecastRequest(BaseModel):
@@ -86,6 +88,10 @@ class MultivariateForecastRequest(BaseModel):
         ge=1,
         le=512,
         description="Forecast horizon length.",
+    )
+    frequency: str | None = Field(
+        default=None,
+        description="Optional sampling cadence (e.g. 'hourly', 'daily', '15m').",
     )
 
 

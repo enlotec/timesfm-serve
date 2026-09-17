@@ -3,8 +3,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from timesfm_serve.config import Settings
-from timesfm_serve.engine import TimesFmEngine
+from timesfm_serve.core.config import Settings
+from timesfm_serve.core.engine import TimesFmEngine, set_global_engine
 from timesfm_serve.main import create_app
 
 
@@ -23,6 +23,7 @@ def test_settings() -> Settings:
 def mock_engine(test_settings: Settings) -> TimesFmEngine:
     engine = TimesFmEngine(test_settings)
     engine._is_mock = True
+    set_global_engine(engine)
     return engine
 
 
