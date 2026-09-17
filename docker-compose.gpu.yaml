@@ -1,0 +1,14 @@
+services:
+  timesfm:
+    build:
+      target: base-gpu
+    image: timesfm-serve:latest-gpu
+    environment:
+      DEVICE: "cuda"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

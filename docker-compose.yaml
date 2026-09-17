@@ -1,0 +1,23 @@
+services:
+  timesfm:
+    container_name: timesfm-serve
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base-cpu
+    image: timesfm-serve:latest
+    ports:
+      - "${TIMESFM_PORT:-8088}:8088"
+    environment:
+      TIMESFM_MODEL_ID: "${TIMESFM_MODEL_ID:-google/timesfm-3.0-pytorch}"
+      DEVICE: "${DEVICE:-cpu}"
+      DEFAULT_HORIZON: "${DEFAULT_HORIZON:-32}"
+      BATCH_SIZE: "${BATCH_SIZE:-32}"
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
+    volumes:
+      - timesfm_cache:/home/appuser/.cache/huggingface
+    restart: unless-stopped
+
+volumes:
+  timesfm_cache:
+    name: timesfm_cache
